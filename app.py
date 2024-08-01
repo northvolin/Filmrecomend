@@ -7,35 +7,37 @@ app = Flask(__name__)
 def load_data():
     try:
         ratings = pd.read_csv('ratings.csv')
-    except FileNotFoundError:
-        print("File ratings.csv not found. Please ensure the file is in the correct directory.")
-        ratings = pd.DataFrame()  # или другой способ обработки ошибки
+        if not all(column in ratings.columns for column in ['userId', 'movieId', 'rating']):
+            raise ValueError("Ratings file does not contain required columns: ['userId', 'movieId', 'rating']")
+    except (FileNotFoundError, ValueError) as e:
+        print(str(e))
+        ratings = pd.DataFrame()
 
     try:
         movies = pd.read_csv('movies.csv')
-    except FileNotFoundError:
-        print("File movies.csv not found. Please ensure the file is in the correct directory.")
-        movies = pd.DataFrame()  # или другой способ обработки ошибки
+        if not all(column in movies.columns for column in ['movieId', 'title']):
+            raise ValueError("Movies file does not contain required columns: ['movieId', 'title']")
+    except (FileNotFoundError, ValueError) as e:
+        print(str(e))
+        movies = pd.DataFrame()
 
     return ratings, movies
 
 ratings, movies = load_data()
 
 # Проверяем, что нужные столбцы присутствуют
-required_columns = ['userId', 'movieId', 'rating']
-if all(column in ratings.columns for column in required_columns):
+if not ratings.empty and not movies.empty:
     # Создаем объект Reader
     reader = Reader(rating_scale=(0.5, 5.0))
 
     # Загружаем данные в формат Surprise
-    data = Dataset.load_from_df(ratings[required_columns], reader)
+    data = Dataset.load_from_df(ratings[['userId', 'movieId', 'rating']], reader)
 
     # Создаем и обучаем модель SVD
     model = SVD()
     trainset = data.build_full_trainset()
     model.fit(trainset)
 else:
-    print(f"Ratings file does not contain required columns: {required_columns}")
     data = None
     model = None
 
@@ -50,7 +52,12 @@ def index():
 def recommend():
     user_ratings = request.form.getlist('rating')
     user_id = int(request.form['user_id'])
-    user_ratings = [float(rating) for rating in user_ratings]
+
+    # Убедимся, что все рейтинги можно преобразовать в float
+    try:
+        user_ratings = [float(rating) for rating in user_ratings if rating]
+    except ValueError as e:
+        return f"Invalid rating value: {e}", 400
 
     user_ratings_dict = {movie_id: rating for movie_id, rating in zip(movies['movieId'], user_ratings)}
 
