@@ -1,0 +1,8 @@
+import pandas as pd
+
+try:
+    ratings = pd.read_csv('ratings.csv')
+except FileNotFoundError:
+    print("File ratings.csv not found. Please ensure the file is in the correct directory.")
+    # Handle the absence of the file appropriately
+    ratings = pd.DataFrame()  # or some other default behavior
