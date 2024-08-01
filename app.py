@@ -5,8 +5,8 @@ from surprise import Dataset, Reader, SVD
 app = Flask(__name__)
 
 # Загрузим данные MovieLens
-ratings = pd.read_csv('ml-latest-small/ratings.csv')
-movies = pd.read_csv('ml-latest-small/movies.csv')
+ratings = pd.read_csv('ratings.csv')
+movies = pd.read_csv('movies.csv')
 
 # Создаем объект Reader
 reader = Reader(rating_scale=(0.5, 5.0))
